@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ABC Logistics Command Center</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #eef2f7;
+            margin: 0;
+            padding: 0;
+        }
+
+        nav {
+            background-color: #2c3e50;
+            padding: 15px;
+        }
+        nav a {
+            color: white;
+            margin-right: 20px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .container {
+            width: 80%;
+            margin: 40px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        input {
+            padding: 10px;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 25px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        #chartContainer {
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="index.html">Dashboard</a>
+        <a href="about.html">Developer Profile</a>
+    </nav>
+
+    <div class="container">
+        <h2>Warehouse Command Center</h2>
+
+        <input type="text" id="itemName" placeholder="Item name">
+        <input type="number" id="itemQty" placeholder="Quantity">
+        <button onclick="addItem()">Add Item</button>
+        <button onclick="clearAll()">Clear All Items</button>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                </tr>
+            </thead>
+            <tbody id="inventoryTable"></tbody>
+        </table>
+
+        <div id="chartContainer">
+            <h3>Inventory Visualization</h3>
+            <canvas id="inventoryChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let inventory = JSON.parse(localStorage.getItem("inventoryData")) || [];
+
+        function saveData() {
+            localStorage.setItem("inventoryData", JSON.stringify(inventory));
+        }
+
+        function renderTable() {
+            const table = document.getElementById("inventoryTable");
+            table.innerHTML = "";
+
+            inventory.forEach(entry => {
+                const row = `<tr>
+                                <td>${entry.name}</td>
+                                <td>${entry.qty}</td>
+                             </tr>`;
+                table.innerHTML += row;
+            });
+        }
+
+        function getBarColors() {
+            return inventory.map(item => {
+                return item.qty < 10 ? "#e74c3c" : "#3498db";
+            });
+        }
+
+        const ctx = document.getElementById('inventoryChart').getContext('2d');
+        let chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: inventory.map(i => i.name),
+                datasets: [{
+                    label: 'Quantity',
+                    data: inventory.map(i => i.qty),
+                    backgroundColor: getBarColors()
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        function updateChart() {
+            chart.data.labels = inventory.map(i => i.name);
+            chart.data.datasets[0].data = inventory.map(i => i.qty);
+            chart.data.datasets[0].backgroundColor = getBarColors();
+            chart.update();
+        }
+
+        // Phase 5 validation
+        function addItem() {
+            const name = document.getElementById("itemName").value.trim();
+            const qtyInput = document.getElementById("itemQty").value.trim();
+
+            if (name === "" || qtyInput === "") {
+                alert("Please enter both an item name and a quantity.");
+                return;
+            }
+
+            const duplicate = inventory.some(item => item.name.toLowerCase() === name.toLowerCase());
+            if (duplicate) {
+                alert("This item already exists in the inventory.");
+                return;
+            }
+
+            if (!/^\d+$/.test(qtyInput)) {
+                alert("Quantity must be a valid number with no letters or symbols.");
+                return;
+            }
+
+            const qty = parseInt(qtyInput);
+
+            if (qty <= 0) {
+                alert("Quantity must be greater than zero.");
+                return;
+            }
+
+            inventory.push({ name, qty });
+            saveData();
+            renderTable();
+            updateChart();
+
+            document.getElementById("itemName").value = "";
+            document.getElementById("itemQty").value = "";
+        }
+
+        function clearAll() {
+            inventory = [];
+            localStorage.removeItem("inventoryData");
+            renderTable();
+            updateChart();
+        }
+
+        renderTable();
+        updateChart();
+    </script>
+
+</body>
+</html>
